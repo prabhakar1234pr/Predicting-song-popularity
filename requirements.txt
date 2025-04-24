@@ -1,3 +1,7 @@
+ipykernel
+os
+zipfile
+abc
 pandas
 matplotlib
 numpy 
