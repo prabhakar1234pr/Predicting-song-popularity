@@ -1,7 +1,4 @@
 ipykernel
-os
-zipfile
-abc
 pandas
 matplotlib
 numpy 
@@ -9,3 +6,7 @@ seaborn
 scikit-learn
 tensorflow
 keras
+zenml
+
+
+
