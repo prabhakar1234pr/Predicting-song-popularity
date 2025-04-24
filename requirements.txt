@@ -7,6 +7,7 @@ scikit-learn
 tensorflow
 keras
 zenml
-
+secure
+docker
 
 
