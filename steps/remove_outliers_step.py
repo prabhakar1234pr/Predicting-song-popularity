@@ -1,20 +1,21 @@
-import pandas as pd
-import logging
-from zenml import step
-from src.outlier_detector import remove_outliers_iqr
+# steps/clean_outliers_step.py
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import pandas as pd
+import numpy as np
+from zenml import step
+from typing import Tuple
+from src.outlier_detector import clean_outliers_ohe_year
 
 @step
-def remove_outliers_step(df: pd.DataFrame) -> pd.DataFrame:
+
+def clean_outliers_step(X_train: pd.DataFrame, y_train: np.ndarray) -> Tuple[pd.DataFrame, np.ndarray]:
     """
-    ZenML step to detect and handle outliers using a hybrid IQR strategy:
-    - For numeric columns (excluding known categorical-like numerics):
-        • If number of outliers > 1000, remove them.
-        • If number of outliers <= 1000, cap the values at IQR bounds.
+    ZenML step to clean outliers using a hybrid IQR approach.
+    Accepts and returns NumPy arrays for y_train to match ZenML expectations.
     """
-    cleaned_df = remove_outliers_iqr(df)
-    logger.info(f"✅ Outlier handling done in step. Final shape: {cleaned_df.shape}")
-    return cleaned_df
+    y_train_series = pd.Series(y_train, index=X_train.index)
+    X_clean, y_clean = clean_outliers_ohe_year(X_train, y_train_series)
+    return X_clean, y_clean.to_numpy()
+
+
 

@@ -1,39 +1,44 @@
+# src/outlier_cleaner.py
+
 import pandas as pd
 import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
 
-EXCLUDED_NUMERIC_CATEGORICALS = ["key", "mode"]
+EXCLUDED_NUMERIC_CATEGORICALS = ["key", "mode", "release_year","release_day", "release_month"]  # Add any other numeric categorical columns to exclude
 
-def remove_outliers_iqr(df: pd.DataFrame, threshold: int = 1000) -> pd.DataFrame:
+def clean_outliers_ohe_year(X: pd.DataFrame, y: pd.Series, threshold: int = 1000) -> tuple:
     """
-    Apply hybrid outlier treatment using IQR:
-    - Remove rows if outliers > threshold
-    - Cap outliers if <= threshold
+    Hybrid IQR-based outlier cleaner:
+    - Removes rows if outliers > threshold
+    - Caps values if outliers <= threshold
     """
-    numeric_cols = df.select_dtypes(include='number').columns
-    numeric_cols = [col for col in numeric_cols if col not in EXCLUDED_NUMERIC_CATEGORICALS]
-    df_clean = df.copy()
+    X_clean = X.copy()
+    y_clean = y.copy()
+    
+    numeric_cols = X_clean.select_dtypes(include='number').columns
+
+# Exclude binary (0/1) one-hot columns + numeric categoricals like 'key' and 'mode'
+    numeric_cols = [
+    col for col in numeric_cols
+    if col not in EXCLUDED_NUMERIC_CATEGORICALS and not set(X_clean[col].dropna().unique()).issubset({0, 1})
+    ]
 
     for col in numeric_cols:
-        Q1 = df_clean[col].quantile(0.25)
-        Q3 = df_clean[col].quantile(0.75)
+
+        Q1 = X_clean[col].quantile(0.25)
+        Q3 = X_clean[col].quantile(0.75)
         IQR = Q3 - Q1
         lower = Q1 - 1.5 * IQR
         upper = Q3 + 1.5 * IQR
 
-        mask_outliers = (df_clean[col] < lower) | (df_clean[col] > upper)
+        mask_outliers = (X_clean[col] < lower) | (X_clean[col] > upper)
         outlier_count = mask_outliers.sum()
 
-        if outlier_count > threshold:
-            df_clean = df_clean[~mask_outliers]
-            logger.info(f"🗑️ Removed {outlier_count} outliers from '{col}' using IQR.")
-        else:
-            original_col = df_clean[col].copy()
-            df_clean[col] = np.where(df_clean[col] < lower, lower, df_clean[col])
-            df_clean[col] = np.where(df_clean[col] > upper, upper, df_clean[col])
-            logger.info(f"🔧 Capped {outlier_count} outliers in '{col}' using IQR bounds.")
+        X_clean[col] = np.where(X_clean[col] < lower, lower, X_clean[col])
+        X_clean[col] = np.where(X_clean[col] > upper, upper, X_clean[col])
+        logger.info(f"🔧 Capped {outlier_count} outliers in '{col}'")
 
-    logger.info(f"✅ Hybrid outlier treatment complete. Final shape: {df_clean.shape}")
-    return df_clean
+    logger.info(f"✅ Final shape after outlier cleanup: {X_clean.shape}")
+    return X_clean, y_clean
