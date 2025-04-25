@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def handle_track_id_duplicates(df: pd.DataFrame, verbose: bool = True) -> pd.DataFrame:
     initial_shape = df.shape

@@ -8,6 +8,9 @@ from zenml import pipeline, step, Model
 from steps.data_ingestion_step import data_ingestion_step
 from steps.handle_duplicates_step import handle_duplicates_step
 from steps.handle_missing_values_step import handle_missing_step
+from steps.remove_outliers_step import remove_outliers_step
+from steps.parse_dates_step import parse_dates_step
+from steps.split_data_step import split_data_step
 
 
 logging.basicConfig(
@@ -29,7 +32,12 @@ def ml_pipeline():
     #data_ingestion_step(
     raw_data = data_ingestion_step(file_path="C:/predicting_song_popularity/Data/archive (7).zip")  # Replace with your zip file path
     data_no_duplicates = handle_duplicates_step(df=raw_data)
-    cleaned_data = handle_missing_step(df=data_no_duplicates, strategy_name="drop")  # You can change the strategy as needed
+    cleaned_data = handle_missing_step(df=data_no_duplicates)  # You can change the strategy as needed
+    date_parse_data = parse_dates_step(df=cleaned_data)
+    X_train, X_test, y_train, y_test = split_data_step(df=date_parse_data, target_column="track_popularity")
 
 
+
+if __name__ == "__main__":
+    ml_pipeline()
     
