@@ -1,0 +1,6 @@
+artifact_location: file:///C:/predicting_song_popularity/mlruns/953269657080535504
+creation_time: 1745617649692
+experiment_id: '953269657080535504'
+last_update_time: 1745617649692
+lifecycle_stage: active
+name: Song_Popularity_Prediction

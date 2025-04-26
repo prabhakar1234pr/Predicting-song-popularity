@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/predicting_song_popularity/mlruns/953269657080535504/167365e7111d4bfea4208c5a435f92c1/artifacts
+end_time: 1745622059658
+entry_point_name: ''
+experiment_id: '953269657080535504'
+lifecycle_stage: active
+run_id: 167365e7111d4bfea4208c5a435f92c1
+run_name: linear_regression_optuna_tuning
+run_uuid: 167365e7111d4bfea4208c5a435f92c1
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745622055819
+status: 4
+tags: []
+user_id: prabh

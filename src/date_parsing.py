@@ -21,5 +21,8 @@ def parse_release_date(df: pd.DataFrame, date_column: str = "track_album_release
     df["release_month"] = df[date_column].dt.month
     df["release_day"] = df[date_column].dt.day
 
+    # 🛑 DROP the original datetime column
+    df = df.drop(columns=[date_column])
+
     logger.info("✅ Date parsing complete.")
     return df
