@@ -4,7 +4,10 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import logging
-from zenml import pipeline, Model
+from zenml import pipeline, Model ,step
+from zenml.client import Client
+import pandas as pd
+
 
 # Import your steps
 from steps.data_ingestion_step import data_ingestion_step
@@ -15,8 +18,10 @@ from steps.split_data_step import split_data_step
 from steps.encoder_step import encoder_step
 from steps.transform_features_step import transform_features_step
 from steps.remove_outliers_step import clean_outliers_step
-from steps.regression_models_step import train_regression_step
+from steps.regression_model_step import train_regression_step
 from steps.diagnostic_step import diagnostics_step
+from steps.evaluator_step import evaluate_regression_model
+from steps.Leaderboard_step import leaderboard_step
 
 # Set up logging
 logging.basicConfig(
@@ -70,6 +75,23 @@ def ml_pipeline():
     best_model_ridge = train_regression_step(X_train=X_train_cleaned, y_train=y_train_cleaned, model_name="ridge_regression")
     best_model_xgb = train_regression_step(X_train=X_train_cleaned, y_train=y_train_cleaned, model_name="xgboost")
     best_model_lgbm = train_regression_step(X_train=X_train_cleaned, y_train=y_train_cleaned, model_name="lightgbm")
+
+
+
+    # 12. Now evaluate the models properly
+    metrics_rf = evaluate_regression_model(model=best_model_rf, X_test=X_test_transformed, y_test=y_test)
+    metrics_linear = evaluate_regression_model(model=best_model_linear, X_test=X_test_transformed, y_test=y_test)
+    metrics_ridge = evaluate_regression_model(model=best_model_ridge, X_test=X_test_transformed, y_test=y_test)
+    metrics_xgb = evaluate_regression_model(model=best_model_xgb, X_test=X_test_transformed, y_test=y_test)
+    metrics_lgbm = evaluate_regression_model(model=best_model_lgbm, X_test=X_test_transformed, y_test=y_test)
+
+
+
+
+
+
+
+    
 
 if __name__ == "__main__":
     ml_pipeline()

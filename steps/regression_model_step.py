@@ -1,42 +1,53 @@
+# steps/regression_model_step.py
+
 import logging
 from abc import ABC, abstractmethod
-from zenml import step
 import mlflow
 import optuna
 from optuna.integration import OptunaSearchCV
 from mlflow.models.signature import infer_signature
+from zenml import step
+from zenml.client import Client
+from zenml import Model
+
 from src.Model_Building_Regression import ModelFactory
 
-# ==========================
 # 🚀 SETUP LOGGING
-# ==========================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ==========================
-# 🛠️ ABSTRACT BASE CLASS
-# ==========================
-class BaseRegressionTrainer(ABC):
-    """Abstract Base Class for regression model trainers."""
+# 🧩 ACTIVE EXPERIMENT TRACKER AND MODEL
+experiment_tracker = Client().active_stack.experiment_tracker
 
+model = Model(
+    name="Song-Popularity-Predictor",
+    version="1.0.0",
+    license="Apache 2.0",
+    description="Predicts song popularity before release using metadata and audio features."
+)
+
+# 🛠️ ABSTRACT BASE CLASS
+class BaseRegressionTrainer(ABC):
     @abstractmethod
     def train(self, X_train, y_train, model_name: str):
-        """Train a regression model with hyperparameter tuning."""
         pass
 
-# ==========================
 # 🚀 CONCRETE TRAINER CLASS
-# ==========================
 class OptunaRegressionTrainer(BaseRegressionTrainer):
-    """Concrete implementation using Optuna Bayesian Optimization."""
-
     def train(self, X_train, y_train, model_name: str = "random_forest"):
         logger.info(f"Starting training for model: {model_name}")
 
-        mlflow.set_experiment("Song_Popularity_Prediction")
+        mlflow.set_experiment("Song_Popularity_Prediction_Experiment")
 
-        with mlflow.start_run(run_name=f"{model_name}_optuna_tuning"):
+        # Start new or nested MLflow run
+        if not mlflow.active_run():
+            mlflow.start_run(run_name=f"{model_name}_optuna_tuning")
+        else:
+            mlflow.start_run(run_name=f"{model_name}_optuna_tuning", nested=True)
 
+        mlflow.sklearn.autolog()
+
+        try:
             factory = ModelFactory()
             model_builder = factory.get_model_builder(model_name)
             base_pipeline = model_builder.build_pipeline()
@@ -62,18 +73,25 @@ class OptunaRegressionTrainer(BaseRegressionTrainer):
             best_model = search.best_estimator_
             best_params = search.best_params_
 
-            # ⚡ Generate input_example and signature
-            sample_input = X_train[:5]  # first 5 rows
-            signature = infer_signature(X_train, best_model.predict(X_train))
-
-            # 📝 Log hyperparameters
+            # 📝 Log hyperparameters (even though autolog does it, explicit is better)
             mlflow.log_params(best_params)
 
             # 🏷️ Log metadata tags
             mlflow.set_tag("model_type", model_name)
             mlflow.set_tag("optuna_n_trials", len(search.study_.trials))
 
-            # 💥 Log the model itself
+            # ✨ Log input features (for transparency)
+            try:
+                feature_names = X_train.columns.tolist()
+                mlflow.log_text("\n".join(feature_names), artifact_file="input_features.txt")
+                logger.info(f"Logged input features: {feature_names}")
+            except Exception as e:
+                logger.warning(f"Could not log feature names: {e}")
+
+            # 💥 Log the model manually
+            sample_input = X_train[:5]
+            signature = infer_signature(X_train, best_model.predict(X_train))
+
             mlflow.sklearn.log_model(
                 sk_model=best_model,
                 artifact_path="model",
@@ -81,12 +99,18 @@ class OptunaRegressionTrainer(BaseRegressionTrainer):
                 signature=signature
             )
 
-            logger.info("✅ Best model logged to MLflow with input example, signature, and metadata.")
+            logger.info("✅ Best model logged to MLflow successfully.")
 
             return best_model
 
+        except Exception as e:
+            logger.error(f"Error during model training: {e}")
+            raise e
+
+        finally:
+            mlflow.end_run()
+
     def get_param_distributions(self, model_name: str):
-        """Returns the hyperparameter search space for different models."""
         model_name = model_name.lower()
 
         if model_name == "linear_regression":
@@ -124,13 +148,11 @@ class OptunaRegressionTrainer(BaseRegressionTrainer):
             logger.error(f"No hyperparameter search space defined for model: {model_name}")
             raise ValueError(f"No hyperparameter search space defined for model: {model_name}")
 
-# ==========================
 # 🚀 ZENML STEP
-# ==========================
-@step
+@step(enable_cache=False, experiment_tracker=experiment_tracker.name, model=model)
 def train_regression_step(X_train, y_train, model_name: str = "random_forest"):
-    """ZenML Step to train a regression model with Optuna tuning."""
     trainer = OptunaRegressionTrainer()
     best_model = trainer.train(X_train, y_train, model_name)
     return best_model
+
 

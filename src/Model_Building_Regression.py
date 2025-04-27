@@ -1,4 +1,4 @@
-# src/components/model_building_regression.py
+# src/Model_Building_Regression.py
 
 import warnings
 import logging
@@ -7,18 +7,14 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
+from sklearn.base import RegressorMixin
 
-# ==========================
 # 🚀 SETUP LOGGING
-# ==========================
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 warnings.filterwarnings("ignore")
 
-# ==========================
 # 🛠️ SAFE IMPORTS
-# ==========================
 try:
     from xgboost import XGBRegressor
     logger.info("Successfully imported XGBoost.")
@@ -33,23 +29,16 @@ except ImportError:
     LGBMRegressor = None
     logger.warning("LightGBM library not found. LightGBM models will be unavailable.")
 
-
-# ==========================
 # 🛠️ ABSTRACT BASE CLASS
-# ==========================
 class RegressionModel(ABC):
     @abstractmethod
     def build_pipeline(self) -> Pipeline:
         """Build and return a sklearn pipeline."""
         pass
 
-
-# ==========================
 # 🚀 CONCRETE MODEL CLASSES
-# ==========================
-
 class LinearRegressionModel(RegressionModel):
-    def build_pipeline(self) -> Pipeline:
+    def build_pipeline(self) -> RegressorMixin:
         logger.info("Building Linear Regression pipeline.")
         return Pipeline([
             ("scaler", StandardScaler()),
@@ -57,7 +46,7 @@ class LinearRegressionModel(RegressionModel):
         ])
 
 class RidgeRegressionModel(RegressionModel):
-    def build_pipeline(self) -> Pipeline:
+    def build_pipeline(self) -> RegressorMixin:
         logger.info("Building Ridge Regression pipeline.")
         return Pipeline([
             ("scaler", StandardScaler()),
@@ -65,39 +54,35 @@ class RidgeRegressionModel(RegressionModel):
         ])
 
 class RandomForestModel(RegressionModel):
-    def build_pipeline(self) -> Pipeline:
+    def build_pipeline(self) -> RegressorMixin:
         logger.info("Building Random Forest pipeline.")
         return Pipeline([
             ("regressor", RandomForestRegressor())
         ])
 
 class XGBoostModel(RegressionModel):
-    def build_pipeline(self) -> Pipeline:
+    def build_pipeline(self) -> RegressorMixin:
         if XGBRegressor is None:
             logger.error("Attempted to build XGBoost model but xgboost is not installed.")
             raise ImportError("XGBoost library is not installed. Please install xgboost.")
-        
+
         logger.info("Building XGBoost Regression pipeline.")
         return Pipeline([
             ("regressor", XGBRegressor())
         ])
 
 class LightGBMModel(RegressionModel):
-    def build_pipeline(self) -> Pipeline:
+    def build_pipeline(self) -> RegressorMixin:
         if LGBMRegressor is None:
             logger.error("Attempted to build LightGBM model but lightgbm is not installed.")
             raise ImportError("LightGBM library is not installed. Please install lightgbm.")
-        
+
         logger.info("Building LightGBM Regression pipeline.")
         return Pipeline([
             ("regressor", LGBMRegressor())
         ])
 
-
-# ==========================
 # 🏗️ MODEL FACTORY CLASS
-# ==========================
-
 class ModelFactory:
     def __init__(self):
         self.models = {
